@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "519067039620",
+    "project_id": "projectify-f272a",
+    "storage_bucket": "projectify-f272a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:519067039620:android:73830ffcd5fa0047510fd1",
+        "android_client_info": {
+          "package_name": "presuniv.r.bismillah"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5sL-3zlzWx31Pr-TUGSqp9ggH4fDSi2k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

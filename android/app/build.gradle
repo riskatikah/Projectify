@@ -1,0 +1,63 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "com.google.gms.google-services" // Firebase services
+    id "dev.flutter.flutter-gradle-plugin" // Flutter Gradle plugin
+}
+
+android {
+    namespace = "com.example.bismillah"
+    compileSdk = flutter.compileSdkVersion
+
+    defaultConfig {
+        applicationId = "com.example.bismillah"
+        minSdk = 21
+        //noinspection ExpiredTargetSdkVersion
+        targetSdk = 33
+        versionCode = 1
+        versionName = "1.0"
+        multiDexEnabled = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
+    buildTypes {
+        release {
+            shrinkResources true
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            signingConfig signingConfigs.debug
+        }
+        debug {
+            shrinkResources false
+            minifyEnabled false
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    implementation "androidx.multidex:multidex:2.0.1"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation platform("com.google.firebase:firebase-bom:33.7.0")
+    implementation "com.google.firebase:firebase-analytics"
+    implementation "com.google.firebase:firebase-auth:23.1.0"
+    implementation "com.google.firebase:firebase-firestore:25.1.1.1"
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+apply plugin: 'com.google.gms.google-services'
