@@ -1,24 +1,22 @@
-import 'package:bismillah/view_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
-import 'edit_project.dart';
+import 'apply.dart';
 
-class ViewProjectPage extends StatelessWidget {
-  final String projectId;
+class ViewRecruitmentPage extends StatelessWidget {
+  final String recruitmentId;
 
-  ViewProjectPage({required this.projectId});
+  const ViewRecruitmentPage({Key? key, required this.recruitmentId}) : super(key: key);
 
-  Future<DocumentSnapshot> _fetchProjectData(String projectId) async {
+  Future<DocumentSnapshot> _fetchRecruitmentData(String recruitmentId) async {
     try {
-      DocumentSnapshot projectSnapshot = await FirebaseFirestore.instance
-          .collection('projects')
-          .doc(projectId)
+      DocumentSnapshot recruitmentSnapshot = await FirebaseFirestore.instance
+          .collection('open_recruitments')
+          .doc(recruitmentId)
           .get();
-      return projectSnapshot;
+      return recruitmentSnapshot;
     } catch (e) {
-      throw Exception("Error fetching project data: $e");
+      throw Exception("Error fetching recruitment data: $e");
     }
   }
 
@@ -27,17 +25,14 @@ class ViewProjectPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "View Project",
+          "View Recruitment",
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: Colors.black,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => ViewProfilePage()),
-            );
+            Navigator.pop(context);
           },
         ),
       ),
@@ -46,12 +41,12 @@ class ViewProjectPage extends StatelessWidget {
         height: double.infinity,
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('images/homepage2.png'),
+            image: AssetImage('images/homepage2.png'), // Background Image
             fit: BoxFit.cover,
           ),
         ),
         child: FutureBuilder<DocumentSnapshot>(
-          future: _fetchProjectData(projectId),
+          future: _fetchRecruitmentData(recruitmentId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
@@ -62,56 +57,57 @@ class ViewProjectPage extends StatelessWidget {
             }
 
             if (!snapshot.hasData || !snapshot.data!.exists) {
-              return Center(child: Text("Project not found"));
+              return Center(child: Text("Recruitment not found"));
             }
 
-            var projectData = snapshot.data!.data() as Map<String, dynamic>;
+            var recruitmentData = snapshot.data!.data() as Map<String, dynamic>;
+
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Gambar proyek menggunakan file lokal
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: Image.asset(
-                      'images/project.png',
+                      'images/reqtim.png', // Gambar lokal yang digunakan
                       width: double.infinity,
                       height: 200,
                       fit: BoxFit.cover,
                     ),
                   ),
                   SizedBox(height: 16),
-                  // Nama proyek
-                  _buildTextSection("Project Name", projectData['projectName'] ?? 'No Name'),
-                  // Deskripsi proyek
-                  _buildTextSection("Description", projectData['projectDescription'] ?? 'No Description'),
-                  // Pembuat proyek
-                  _buildTextSection("Created By", projectData['createdBy'] ?? 'Unknown'),
-                  // Jurusan
-                  _buildTextSection("Major", projectData['major'] ?? 'Not Available'),
-                  // Tanggal dibuat dan sampai
+                  // Project Name
+                  _buildTextSection("Project Name", recruitmentData['projectName'] ?? 'No Name'),
+                  // Description
+                  _buildTextSection("Description", recruitmentData['description'] ?? 'No Description'),
+                  // Team Size
+                  _buildTextSection("Team Size", recruitmentData['teamSize']?.toString() ?? 'Not Available'),
+                  // Benefits
+                  _buildTextSection("Benefits", recruitmentData['benefits'] ?? 'Not Available'),
+                  // Start Date
                   _buildTextSection(
-                    "Created Date",
-                    projectData['createdDate'] != null
-                        ? DateFormat('yyyy-MM-dd').format(projectData['createdDate'].toDate())
+                    "Start Date",
+                    recruitmentData['startDate'] != null
+                        ? DateFormat('yyyy-MM-dd').format((recruitmentData['startDate'] as Timestamp).toDate())
                         : 'Not Available',
                   ),
+                  // End Date
                   _buildTextSection(
-                    "Until Date",
-                    projectData['untilDate'] != null
-                        ? DateFormat('yyyy-MM-dd').format(projectData['untilDate'].toDate())
+                    "End Date",
+                    recruitmentData['endDate'] != null
+                        ? DateFormat('yyyy-MM-dd').format((recruitmentData['endDate'] as Timestamp).toDate())
                         : 'Not Available',
                   ),
                   SizedBox(height: 16),
-                  // Skills
+                  // Skills Section
                   Text(
                     "Skills",
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   Wrap(
                     spacing: 8,
-                    children: (projectData['skills'] as List<dynamic>? ?? [])
+                    children: (recruitmentData['skills'] as List<dynamic>? ?? [])
                         .map((skill) => Chip(
                       label: Text(skill, style: TextStyle(color: Colors.white)),
                       backgroundColor: Colors.grey[700],
@@ -119,45 +115,17 @@ class ViewProjectPage extends StatelessWidget {
                         .toList(),
                   ),
                   SizedBox(height: 16),
-                  // Tautan dokumen
-                  GestureDetector(
-                    onTap: () async {
-                      final documentLink = projectData['documentLink'];
-                      if (documentLink != null && documentLink.isNotEmpty) {
-                        try {
-                          final uri = Uri.parse(documentLink);
-                          if (await canLaunchUrl(uri)) {
-                            launchUrl(uri, mode: LaunchMode.externalApplication);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Could not open the document link')),
-                            );
-                          }
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Invalid URL')),
-                          );
-                        }
-                      }
-                    },
-                    child: Text(
-                      "Open Document",
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 16,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  // Tombol Edit
+                  // Apply Button
                   Center(
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => EditProjectPage(projectId: projectId),
+                            builder: (context) => ApplyPage(
+                              recruitmentId: recruitmentId,
+                              projectName: recruitmentData['projectName'],
+                            ),
                           ),
                         );
                       },
@@ -167,7 +135,7 @@ class ViewProjectPage extends StatelessWidget {
                         minimumSize: Size(double.infinity, 50),
                         foregroundColor: Colors.white,
                       ),
-                      child: Text('Edit Project', style: TextStyle(fontSize: 16)),
+                      child: Text('Apply', style: TextStyle(fontSize: 16)),
                     ),
                   ),
                 ],

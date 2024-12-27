@@ -1,7 +1,7 @@
 import 'package:bismillah/service/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart'; // Pastikan Anda mengimpor provider
+import 'package:provider/provider.dart';
 
 class Signup extends StatefulWidget {
   @override
@@ -13,6 +13,9 @@ class _SignUpState extends State<Signup> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _majorController = TextEditingController();
+  final TextEditingController _batchController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
@@ -23,6 +26,9 @@ class _SignUpState extends State<Signup> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _majorController.dispose();
+    _batchController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -38,6 +44,8 @@ class _SignUpState extends State<Signup> {
             _usernameController.text.trim(),
             _emailController.text.trim(),
             _passwordController.text.trim(),
+            _majorController.text.trim(),
+            _descriptionController.text.trim(),
           );
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -48,6 +56,8 @@ class _SignUpState extends State<Signup> {
           _emailController.clear();
           _passwordController.clear();
           _confirmPasswordController.clear();
+          _majorController.clear();
+          _descriptionController.clear();
 
           Navigator.pushReplacementNamed(context, '/login_page');
         } on FirebaseAuthException catch (e) {
@@ -89,7 +99,7 @@ class _SignUpState extends State<Signup> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 80),
+              const SizedBox(height: 5),
               const Text(
                 "Sign up",
                 style: TextStyle(
@@ -120,10 +130,13 @@ class _SignUpState extends State<Signup> {
                       icon: Icons.email,
                       hint: 'Email',
                       validator: (value) {
+                        print("Input Email: '${value?.trim()}'");
+                        print("Regex Match: ${RegExp(r'^[a-zA-Z0-9._%+-]+@(president\.ac\.id|student\.president\.ac\.id)$').hasMatch(value?.trim() ?? '')}");
+
                         if (value == null || value.isEmpty) {
                           return 'Please Enter Email';
-                        } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                          return 'Enter a valid email';
+                        } else if (!RegExp(r'^[a-zA-Z0-9._%+-]+@(president\.ac\.id|student\.president\.ac\.id)$').hasMatch(value.trim())) {
+                          return 'Email must be president.ac.id or student.president.ac.id';
                         }
                         return null;
                       },
@@ -137,6 +150,30 @@ class _SignUpState extends State<Signup> {
                     _buildPasswordField(
                       controller: _confirmPasswordController,
                       hint: 'Confirm Password',
+                    ),
+                    const SizedBox(height: 10),
+                    _buildTextField(
+                      controller: _majorController,
+                      icon: Icons.school,
+                      hint: 'Lecture/Student Major',
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please Enter Lecture/Student Major';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _buildTextField(
+                      controller: _descriptionController,
+                      icon: Icons.description,
+                      hint: 'Description',
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please Enter Description';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
@@ -172,7 +209,7 @@ class _SignUpState extends State<Signup> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
       width: 350,
-      height: 45,
+      height: 50,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
@@ -181,6 +218,7 @@ class _SignUpState extends State<Signup> {
             color: Colors.grey.withOpacity(0.4),
             blurRadius: 5,
             spreadRadius: 1,
+            offset: Offset(0, 3),
           ),
         ],
       ),

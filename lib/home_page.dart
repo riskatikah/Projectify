@@ -1,8 +1,8 @@
+import 'package:bismillah/ViewRecruitmentPage.dart';
 import 'package:bismillah/service/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'view_project2.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -62,9 +62,10 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      // FutureBuilder for Projects
+                      // FutureBuilder for Open Recruitment
+                      const SizedBox(height: 10),
                       FutureBuilder<QuerySnapshot>(
-                        future: FirebaseFirestore.instance.collection('projects').get(),
+                        future: FirebaseFirestore.instance.collection('open_recruitments').get(),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
                             return Center(child: CircularProgressIndicator());
@@ -77,39 +78,38 @@ class _HomePageState extends State<HomePage> {
                           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                             return Center(
                               child: Text(
-                                'No projects found.',
+                                'No open recruitments found.',
                                 style: TextStyle(color: Colors.white, fontSize: 16),
                               ),
                             );
                           }
 
-                          var projects = snapshot.data!.docs;
+                          var recruitments = snapshot.data!.docs;
                           return GridView.builder(
-                            shrinkWrap: true, // Ensures GridView adapts to its content
-                            physics: NeverScrollableScrollPhysics(), // Disable GridView's internal scrolling
+                            shrinkWrap: true,
+                            physics: NeverScrollableScrollPhysics(),
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: _getGridColumnCount(context), // Dynamic column count
+                              crossAxisCount: _getGridColumnCount(context),
                               crossAxisSpacing: 16,
                               mainAxisSpacing: 16,
-                              childAspectRatio: 1, // Makes the grid items square
+                              childAspectRatio: 1,
                             ),
-                            itemCount: projects.length,
+                            itemCount: recruitments.length,
                             itemBuilder: (context, index) {
-                              var project = projects[index];
+                              var recruitment = recruitments[index];
                               return GestureDetector(
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => ViewProjectPage2(
-                                        projectId: project.id,
+                                      builder: (context) => ViewRecruitmentPage(
+                                        recruitmentId: recruitment.id,
                                       ),
                                     ),
                                   );
                                 },
-                                child: _buildProjectItem(
-                                  project['projectName'] ?? 'No Name',
-                                  project['imageUrl'] ?? '',
+                                child: _buildRecruitmentItem(
+                                  recruitment['projectName'] ?? 'No Name',
                                 ),
                               );
                             },
@@ -136,13 +136,13 @@ class _HomePageState extends State<HomePage> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.add_circle, color: Colors.white, size: 35),
+              icon: const Icon(Icons.notifications, color: Colors.white, size: 35),
               onPressed: () {
-                Navigator.pushNamed(context, '/submit_project');
+                Navigator.pushNamed(context, '/notif');
               },
             ),
             IconButton(
-              icon: const Icon(Icons.people, color: Colors.white),
+              icon: const Icon(Icons.account_circle, color: Colors.white),
               onPressed: () {
                 Navigator.pushNamed(context, '/view_profile');
               },
@@ -165,11 +165,11 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Improved _buildProjectItem function
-  Widget _buildProjectItem(String projectName, String imageUrl) {
+  // Modified _buildRecruitmentItem function to use a local image
+  Widget _buildRecruitmentItem(String projectName) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF9F6FF), // Background color for project card
+        color: const Color(0xFFF9F6FF),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -183,27 +183,20 @@ class _HomePageState extends State<HomePage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12), // Rounded corners for the image
-            child: imageUrl.isNotEmpty
-                ? Image.network(
-              imageUrl,
-              height: 150, // Adjusted size for the image
-              width: 150,
-              fit: BoxFit.cover, // Ensures the image scales properly
-            )
-                : Container(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              'images/reqtim.png', // Use the local image
               height: 150,
               width: 150,
-              color: Colors.grey[300],
-              child: Icon(Icons.image, size: 50, color: Colors.grey[700]), // Placeholder for missing image
+              fit: BoxFit.cover,
             ),
           ),
-          const SizedBox(height: 2), // Spacing between the image and the text
+          const SizedBox(height: 2),
           Text(
             projectName,
             style: const TextStyle(
               color: Colors.black,
-              fontSize: 18, // Font size for project name
+              fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,

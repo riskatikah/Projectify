@@ -1,14 +1,13 @@
-import 'dart:io';
+import 'package:bismillah/view_profile.dart';
 import 'package:bismillah/view_project.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 class EditProjectPage extends StatefulWidget {
   final String projectId;
+
   EditProjectPage({required this.projectId});
 
   @override
@@ -18,73 +17,64 @@ class EditProjectPage extends StatefulWidget {
 class _EditProjectPageState extends State<EditProjectPage> {
   DateTime? createdDate;
   DateTime? untilDate;
+
   final TextEditingController _projectNameController = TextEditingController();
   final TextEditingController _projectDescriptionController = TextEditingController();
   final TextEditingController _documentLinkController = TextEditingController();
   final TextEditingController _createdByController = TextEditingController();
-  String? selectedImagePath;
-  String? selectedMajor;
-  List<String> majors = ['Informatics', 'Information System'];
+  final TextEditingController _skillController = TextEditingController();
 
-  // Firestore and Firebase Storage instances
+  List<String> skills = [];
+  String? selectedMajor;
+
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  final FirebaseStorage storage = FirebaseStorage.instance;
 
   @override
   void initState() {
     super.initState();
     _fetchProjectData();
+    _fetchUserMajor();
   }
 
-  // Fetch project data from Firestore
   Future<void> _fetchProjectData() async {
-    DocumentSnapshot projectSnapshot = await firestore.collection('projects').doc(widget.projectId).get();
-    var data = projectSnapshot.data() as Map<String, dynamic>;
+    try {
+      DocumentSnapshot projectSnapshot = await firestore.collection('projects').doc(widget.projectId).get();
+      var data = projectSnapshot.data() as Map<String, dynamic>;
 
-    setState(() {
-      _projectNameController.text = data['projectName'];
-      _projectDescriptionController.text = data['projectDescription'];
-      _documentLinkController.text = data['documentLink'];
-      _createdByController.text = data['createdBy'];
-      createdDate = (data['createdDate'] as Timestamp).toDate();
-      untilDate = (data['untilDate'] as Timestamp).toDate();
-      selectedImagePath = data['imageUrl']; // Setting the existing image URL
-      selectedMajor = data['major'];
-    });
+      setState(() {
+        _projectNameController.text = data['projectName'];
+        _projectDescriptionController.text = data['projectDescription'];
+        _documentLinkController.text = data['documentLink'];
+        _createdByController.text = data['createdBy'];
+        skills = List<String>.from(data['skills'] ?? []);
+        createdDate = (data['createdDate'] as Timestamp).toDate();
+        untilDate = (data['untilDate'] as Timestamp).toDate();
+      });
+    } catch (e) {
+      print('Error fetching project data: $e');
+    }
   }
 
-  // Format the date for display
+  Future<void> _fetchUserMajor() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        DocumentSnapshot userSnapshot = await firestore.collection('users').doc(user.uid).get();
+        var data = userSnapshot.data() as Map<String, dynamic>;
+
+        setState(() {
+          selectedMajor = data['major'];
+        });
+      }
+    } catch (e) {
+      print('Error fetching user major: $e');
+    }
+  }
+
   String formatDate(DateTime? date) {
     return date != null ? DateFormat('yyyy-MM-dd').format(date) : "Select Date";
   }
 
-  // Select image from gallery
-  Future<void> pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        selectedImagePath = image.path; // Update the selected image path
-      });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Image Selected: ${image.name}")));
-    }
-  }
-
-  // Upload the image to Firebase Storage
-  Future<String?> uploadFileToStorage(File file, String filePath) async {
-    try {
-      final Reference storageRef = storage.ref().child(filePath);
-      final UploadTask uploadTask = storageRef.putFile(file);
-      final TaskSnapshot snapshot = await uploadTask;
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
-      return downloadUrl;
-    } catch (e) {
-      print("Error uploading file: $e");
-      return null;
-    }
-  }
-
-  // Update the project data in Firestore
   void updateProject() async {
     if (FirebaseAuth.instance.currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Please log in to update a project")));
@@ -95,41 +85,37 @@ class _EditProjectPageState extends State<EditProjectPage> {
     String projectDescription = _projectDescriptionController.text;
     String documentLink = _documentLinkController.text;
     String createdBy = _createdByController.text;
-    String userId = FirebaseAuth.instance.currentUser!.uid;
 
-    if (projectName.isEmpty || projectDescription.isEmpty || createdBy.isEmpty || selectedMajor == null) {
+    if (projectName.isEmpty ||
+        projectDescription.isEmpty ||
+        createdBy.isEmpty ||
+        selectedMajor == null ||
+        createdDate == null ||
+        untilDate == null ||
+        skills.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Please fill all required fields")));
       return;
     }
 
-    if (untilDate != null && createdDate != null && untilDate!.isBefore(createdDate!)) {
+    if (untilDate!.isBefore(createdDate!)) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Until Date cannot be earlier than Created Date")));
       return;
     }
 
     try {
-      String? imageUrl;
-      // Upload the new image if selected
-      if (selectedImagePath != null) {
-        imageUrl = await uploadFileToStorage(File(selectedImagePath!), 'project_images/${DateTime.now().millisecondsSinceEpoch}');
-      }
-
-      // Update project data in Firestore
       await firestore.collection('projects').doc(widget.projectId).update({
         'projectName': projectName,
         'projectDescription': projectDescription,
         'documentLink': documentLink,
         'createdBy': createdBy,
-        'userId': userId,
         'major': selectedMajor,
-        'createdDate': createdDate ?? DateTime.now(),
+        'createdDate': createdDate,
         'untilDate': untilDate,
-        'imageUrl': imageUrl ?? selectedImagePath ?? '',
+        'skills': skills,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Project Updated Successfully")));
 
-      // Navigate back to the ViewProjectPage
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -141,14 +127,22 @@ class _EditProjectPageState extends State<EditProjectPage> {
     }
   }
 
-  // Delete the project from Firestore
   void deleteProject() async {
     try {
       await firestore.collection('projects').doc(widget.projectId).delete();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Project Deleted Successfully")));
-      Navigator.pop(context); // Go back to the previous screen
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Project Deleted Successfully")),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ViewProfilePage(),
+        ),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error deleting project: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error deleting project: $e")),
+      );
     }
   }
 
@@ -175,51 +169,65 @@ class _EditProjectPageState extends State<EditProjectPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: GestureDetector(
-                  onTap: pickImage,
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      image: selectedImagePath != null
-                          ? DecorationImage(image: FileImage(File(selectedImagePath!)), fit: BoxFit.cover)
-                          : null,
-                    ),
-                    child: selectedImagePath == null
-                        ? Icon(Icons.add_a_photo, size: 40, color: Colors.grey)
-                        : null,
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
               buildTextField('Project Name', _projectNameController),
               buildTextField('Description', _projectDescriptionController),
               buildTextField('Document Link (e.g., GitHub)', _documentLinkController),
               buildTextField('Created By', _createdByController, readOnly: true),
-              DropdownButtonFormField<String>(
-                value: selectedMajor,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.grey[900],
-                  labelStyle: TextStyle(color: Colors.white),
+              buildTextField('Major', TextEditingController(text: selectedMajor), readOnly: true),
+
+              // Skill Input
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Skills:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _skillController,
+                            decoration: InputDecoration(
+                              labelText: 'Enter skill',
+                              filled: true,
+                              fillColor: Colors.grey[900],
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(5.0)),
+                            ),
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.add, color: Colors.white),
+                          onPressed: () {
+                            if (_skillController.text.isNotEmpty) {
+                              setState(() {
+                                skills.add(_skillController.text.trim());
+                                _skillController.clear();
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      children: skills.map((skill) {
+                        return Chip(
+                          label: Text(skill, style: TextStyle(color: Colors.white)),
+                          backgroundColor: Colors.grey[700],
+                          deleteIcon: Icon(Icons.close, color: Colors.white),
+                          onDeleted: () {
+                            setState(() {
+                              skills.remove(skill);
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
                 ),
-                dropdownColor: Colors.black,
-                items: majors.map((major) {
-                  return DropdownMenuItem<String>(
-                    value: major,
-                    child: Text(major, style: TextStyle(color: Colors.white)),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedMajor = value;
-                  });
-                },
-                hint: Text('Select Major', style: TextStyle(color: Colors.white)),
               ),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -227,10 +235,7 @@ class _EditProjectPageState extends State<EditProjectPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Create Date:',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
+                        Text('Create Date:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         ListTile(
                           title: Text('Start Date: ${formatDate(createdDate)}', style: TextStyle(color: Colors.white)),
                           onTap: () async {
@@ -254,10 +259,7 @@ class _EditProjectPageState extends State<EditProjectPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Until Date:',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
+                        Text('Until Date:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         ListTile(
                           title: Text('End Date: ${formatDate(untilDate)}', style: TextStyle(color: Colors.white)),
                           onTap: () async {
@@ -279,6 +281,7 @@ class _EditProjectPageState extends State<EditProjectPage> {
                   ),
                 ],
               ),
+
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: updateProject,
@@ -308,7 +311,6 @@ class _EditProjectPageState extends State<EditProjectPage> {
     );
   }
 
-  // Text input field
   Widget buildTextField(String label, TextEditingController controller, {bool readOnly = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),

@@ -1,14 +1,12 @@
-import 'package:bismillah/view_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
-import 'edit_project.dart';
 
-class ViewProjectPage extends StatelessWidget {
+class ViewProjectPage2 extends StatelessWidget {
   final String projectId;
 
-  ViewProjectPage({required this.projectId});
+  ViewProjectPage2({required this.projectId});
 
   Future<DocumentSnapshot> _fetchProjectData(String projectId) async {
     try {
@@ -33,12 +31,7 @@ class ViewProjectPage extends StatelessWidget {
         backgroundColor: Colors.black,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => ViewProfilePage()),
-            );
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Container(
@@ -147,27 +140,6 @@ class ViewProjectPage extends StatelessWidget {
                         fontSize: 16,
                         decoration: TextDecoration.underline,
                       ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  // Tombol Edit
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditProjectPage(projectId: projectId),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        backgroundColor: Color(0xA8A790D8),
-                        minimumSize: Size(double.infinity, 50),
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text('Edit Project', style: TextStyle(fontSize: 16)),
                     ),
                   ),
                 ],

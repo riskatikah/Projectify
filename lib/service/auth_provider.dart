@@ -1,53 +1,59 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthProv extends ChangeNotifier {
-
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final FirebaseFirestore firestore = FirebaseFirestore.instance; // Inisialisasi Firestore
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  User? _user;
+  String? _username;
+  String? _major;
+  String? _description;
 
   AuthProv() {
     _auth.authStateChanges().listen((User? user) {
       _user = user;
       if (_user != null) {
-        _getUsername(); // Get username when the user is logged in
+        _fetchUserData();
       }
-      notifyListeners(); // Notifikasi perubahan pada UI
+      notifyListeners();
     });
   }
 
-  String? _username;
-  String? get username => _username;
-
-  User? _user;
+  // Getters
   User? get user => _user;
-
+  String? get username => _username;
+  String? get major => _major;
+  String? get description => _description;
   String? get email => _user?.email;
-  String? get userPhotoUrl => _user?.photoURL;
 
-  // Function to get the username from Firestore
-  Future<void> _getUsername() async {
+  // Fetch user data from Firestore
+  Future<void> _fetchUserData() async {
     if (_user != null) {
       try {
         DocumentSnapshot doc = await firestore.collection('users').doc(_user!.uid).get();
         if (doc.exists && doc.data() is Map<String, dynamic>) {
-          _username = (doc.data() as Map<String, dynamic>)['username'];
+          final data = doc.data() as Map<String, dynamic>;
+          _username = data['username'];
+          _major = data['major'];
+          _description = data['description'];
         }
       } catch (e) {
-        print("Error getting username: $e");
-        _username = 'Guest'; // Default to 'Guest' if an error occurs
+        print("Error fetching user data: $e");
+        _username = 'Guest';
+        _major = '';
+        _description = '';
       }
-      notifyListeners(); // Notify listeners after updating the username
+      notifyListeners();
     }
   }
 
+  // Sign in with username and password
   Future<User?> signInWithUsername(String username, String password) async {
     try {
-      // 1. Cari pengguna berdasarkan username
-      QuerySnapshot userSnapshot = await firestore.collection('users')
+      QuerySnapshot userSnapshot = await firestore
+          .collection('users')
           .where('username', isEqualTo: username)
           .limit(1)
           .get();
@@ -59,24 +65,20 @@ class AuthProv extends ChangeNotifier {
         );
       }
 
-      // 2. Ambil email dari dokumen pengguna
       String email = userSnapshot.docs.first['email'];
 
-      // 3. Masuk dengan email dan password
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Periksa apakah userCredential berhasil login dan tidak null
       if (userCredential.user == null) {
         throw Exception("Login failed, userCredential.user is null.");
       }
 
-      // If successfully logged in, fetch the username
-      await _getUsername();
+      await _fetchUserData();
 
-      return userCredential.user; // Kembalikan user yang berhasil login
+      return userCredential.user;
     } on FirebaseAuthException catch (e) {
       print("FirebaseAuthException: ${e.message}");
       throw e;
@@ -86,37 +88,18 @@ class AuthProv extends ChangeNotifier {
     }
   }
 
+  // Sign out
   Future<void> signOut() async {
     await _auth.signOut();
     _user = null;
-    _username = null; // Clear the username when signed out
+    _username = null;
+    _major = null;
+    _description = null;
     notifyListeners();
   }
 
-  Future<void> signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-        final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-        final UserCredential userCredential = await _auth.signInWithCredential(credential);
-        _user = userCredential.user;
-
-        // Get the username after Google login
-        await _getUsername();
-
-        notifyListeners();
-      }
-    } catch (e) {
-      print("Google Sign-In failed: $e");
-      throw Exception("Google Sign-In failed: $e");
-    }
-  }
-
-  Future<void> register(String username, String email, String password) async {
+  // Register a new user
+  Future<void> register(String username, String email, String password, String major, String description) async {
     try {
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -127,21 +110,18 @@ class AuthProv extends ChangeNotifier {
         await firestore.collection('users').doc(userCredential.user!.uid).set({
           'username': username,
           'email': email,
+          'major': major,
+          'description': description,
         });
+
+        await _fetchUserData();
       }
     } on FirebaseAuthException catch (e) {
       print("FirebaseAuthException: ${e.message}");
       throw e;
     } catch (e) {
-      print("Error saving username to Firestore: $e");
+      print("Error saving data to Firestore: $e");
       throw e;
     }
   }
-
-  Future<String?> getUsername() async {
-    // Simulate async operation, for example, getting username from storage or API
-    await Future.delayed(Duration(seconds: 2)); // Simulating network delay
-    return 'YourUsername'; // Replace with actual logic to fetch the username
-  }
-
 }

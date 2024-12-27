@@ -38,14 +38,13 @@ dependencies:
   package_info_plus: ^8.1.1
   firebase_core: ^3.8.0
   firebase_auth: ^5.3.3
-  google_sign_in: ^6.2.2
   cloud_firestore: ^5.5.1
   intl: ^0.18.0
-  image_picker: ^1.1.2
   file_picker: ^8.1.4
   firebase_storage: ^12.3.7
   provider: ^6.1.2
   url_launcher: ^6.1.7
+
 
 
 dev_dependencies:
@@ -80,7 +79,9 @@ flutter:
   - images/logo.png
   - images/taglinee.png
   - images/user.jpg
-  #   - images/a_dot_ham.jpeg
+  - images/project.png
+  - images/reqtim.png
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

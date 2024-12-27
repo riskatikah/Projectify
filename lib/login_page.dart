@@ -1,11 +1,9 @@
 import 'package:bismillah/service/auth_provider.dart';
-import 'package:bismillah/view_profile.dart';
 import 'package:flutter/material.dart';
 import 'forgetpass.dart';
 import 'sign_up.dart';
 import 'home_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
@@ -21,8 +19,6 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
 
-  // Google Sign-In setup
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
@@ -61,8 +57,6 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -209,15 +203,16 @@ class _LoginPageState extends State<LoginPage> {
     return Container(
       width: 350,
       padding: const EdgeInsets.symmetric(horizontal: 15),
-      height: 45,
+      height: 50,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.4),
-            blurRadius: 5,
-            spreadRadius: 1,
+            blurRadius: 6,
+            spreadRadius: 2,
+            offset: Offset(0, 3),
           ),
         ],
       ),
